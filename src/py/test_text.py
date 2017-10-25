@@ -28,6 +28,7 @@ def calcPrereqTest(filename):
 		data.append(numbers)
 	tempTestData=np.array(data)
 	testData.append(tempTestData)
+	file.close()
 
 #	Return the likelihood of a sample point 'x', given Gaussian parameters 'uK' and 'sigmaK'.
 def likelihood(x,uK,sigmaK):
@@ -230,5 +231,7 @@ for filename in os.listdir(directM):
 	filer.write("Average F-measure is "+str(avgFMeasure)+"\n")
 	filer.write("\n**End of results**")
 	filev.write(str(avgAccuracy)+" "+str(avgPrecision)+" "+str(avgRecall)+" "+str(avgFMeasure)+"\n")
-
+	filer.close()
+	filev.close()
+	
 #	End.
