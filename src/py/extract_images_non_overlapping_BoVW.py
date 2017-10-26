@@ -142,7 +142,7 @@ def club(output,direct,ind):
 					outputFile.write(file.read())
 		else:
 			file=open(os.path.join(direct,contents))
-			# outputFile.write(file.read()+"\n")
+			outputFile.write(file.read()+"\n")
 
 #	Program starts here...
 print ("\nThis program extracts Bag-of-Visual-Words feature vectors of images from their color histogram features.\n")

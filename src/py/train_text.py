@@ -17,7 +17,7 @@ clusterPi=[]								#	Stores mixing coefficients for all clusters of all classes
 
 #	Return the likelihood of a sample point 'x', given Gaussian parameters 'uK' and 'sigmaK'.
 def likelihood(x,uK,sigmaK):
-	value=1.0/(((2*math.pi)**(dimension))*((np.linalg.det(sigmaK)))**0.5)
+	value=1.0/((((2*math.pi)**(dimension))*(math.fabs(np.linalg.det(sigmaK))))**0.5)
 	temp=[0 for i in range(dimension)]
 	mul=0
 	sigmaInvK=np.asmatrix(sigmaK).I.A

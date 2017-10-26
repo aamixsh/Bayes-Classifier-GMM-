@@ -7,7 +7,7 @@ import math
 import os
 import random
 			
-dimension=64								#	Dimension of data vectors.
+dimension=24								#	Dimension of data vectors.
 K=3											#	Value of K for making clusters in GMM.
 
 clusters=[]									#	Stores training data in form of clusters under every class for future reference. 
@@ -149,7 +149,7 @@ def calcPrereqTrain(filename):
 	energy=np.inf
 	tempL=0
 
-	while energy>1:
+	while energy>5000:
 		
 		#	Expectation step in the algorithm...
 		tempGammaZ=[[0 for i in range (K)] for j in range (N)]
@@ -158,13 +158,16 @@ def calcPrereqTrain(filename):
 		tempGammaSum=[0 for i in range(K)]
 		newTempL=0
 
+		print energy
+
 		#	Calculating responsibilty terms using previous values of parameters. 
 		for n in range(N):
 			for k in range(K):
 				determinant=np.linalg.det(tempClusterCovarianceMatrices[k])
 				while determinant==0:
+					print tempClusterCovarianceMatrices[k]
 					for i in range(dimension):
-						tempClusterCovarianceMatrices[k][i][i]+=1
+						tempClusterCovarianceMatrices[k][i][i]+=0.001
 					determinant=np.linalg.det(tempClusterCovarianceMatrices[k])
 				varLikelihood=likelihood(tempClass[n],tempClusterMean[k],tempClusterCovarianceMatrices[k])
 				if varLikelihood==0:
@@ -191,11 +194,6 @@ def calcPrereqTrain(filename):
 			tempMatrix=[[0 for i in range(dimension)] for j in range(dimension)]
 			for n in range(N):
 				tempMatrix+=tempGammaZ[n][k]*np.outer((tempClass[n]-tempClusterMean[k]),(tempClass[n]-tempClusterMean[k]))
-				determinant=np.linalg.det(tempMatrix)
-				while determinant==0:
-					for i in range(dimension):
-						tempMatrix[i][i]+=1
-					determinant=np.linalg.det(tempMatrix)
 			if tempL==0:
 				tempClusterCovarianceMatrices.append(tempMatrix/tempGammaSum[k])
 			else:
@@ -215,8 +213,6 @@ def calcPrereqTrain(filename):
 		else:
 			energy=math.fabs(tempL-newTempL)
 			tempL=newTempL
-
-		print energy
 
 	clusterMeans[tempClassInd]=tempClusterMean
 	clusterCovarianceMatrices[tempClassInd]=tempClusterCovarianceMatrices
@@ -262,8 +258,8 @@ if(choice=='o'):
 	dimension=input("Enter the number of dimensions in the data (for input format, refer README.txt): ")
 	directO=raw_input("Enter the path (relative or complete) of the directory to store parameters of the training model: ")
 else:
-	direct="../../data/Output/GMM/Dataset 2/B/featureVectorsBoVW/train/use"
-	directO="../../data/Output/GMM/Dataset 2/B/train_model_bovw/"
+	direct="../../data/Output/GMM/Dataset 2/B/featureVectorsCH/train"
+	directO="../../data/Output/GMM/Dataset 2/B/train_model_CH/"
 
 
 if direct[len(direct)-1]!='/':
@@ -274,36 +270,43 @@ if directO[len(directO)-1]!='/':
 print "Enter the value of K upto which you want to generate training models."
 maxK=input("Beware, large K's can result in singularity problems: ")
 
-for k in range(maxK):
+print "Clubbing feature vectors of all images in a class together..."
+for contents in os.listdir(direct):
+	contentName=os.path.join(direct,contents)
+	if os.path.isdir(contentName) and contents!="use":
+		createPath(os.path.join(direct,"use",contents+".txt"))
+		club(os.path.join(direct,"use",contents+".txt"),contentName,2)
+
+# for k in range(maxK):
 	
-	clusters=[]
-	clusterMeans=[]
-	clusterCovarianceMatrices=[]
-	clusterPi=[]
-	K=k+1
+clusters=[]
+clusterMeans=[]
+clusterCovarianceMatrices=[]
+clusterPi=[]
+K=4
 
-	print "Training data for K = "+str(K)+"..."
-	for filename in os.listdir(direct):
-		calcPrereqTrain(os.path.join(direct,filename))
+print "Training data for K = "+str(K)+"..."
+for filename in os.listdir(os.path.join(direct,"use")):
+	calcPrereqTrain(os.path.join(direct,"use",filename))
 
-	print "Data training complete. Writing results in a file for future use..."
-	file=open(directO+"k"+str(K)+".txt","w")
-	file.write(str(dimension)+" "+str(K)+" "+str(len(clusters))+"\n")
-	for i in range(len(clusterPi)):
-		for k in range(K):
-			file.write(str(clusterPi[i][k])+" ")
+print "Data training complete. Writing results in a file for future use..."
+file=open(directO+"k"+str(K)+".txt","w")
+file.write(str(dimension)+" "+str(K)+" "+str(len(clusters))+"\n")
+for i in range(len(clusterPi)):
+	for k in range(K):
+		file.write(str(clusterPi[i][k])+" ")
+	file.write("\n")
+for i in range(len(clusterMeans)):
+	for k in range(K):
+		for j in range(dimension):
+			file.write(str(clusterMeans[i][k][j])+" ")
 		file.write("\n")
-	for i in range(len(clusterMeans)):
-		for k in range(K):
-			for j in range(dimension):
-				file.write(str(clusterMeans[i][k][j])+" ")
+for i in range(len(clusterCovarianceMatrices)):
+	for k in range(K):
+		for j in range(dimension):
+			for l in range(dimension):
+				file.write(str(clusterCovarianceMatrices[i][k][j][l])+" ")
 			file.write("\n")
-	for i in range(len(clusterCovarianceMatrices)):
-		for k in range(K):
-			for j in range(dimension):
-				for l in range(dimension):
-					file.write(str(clusterCovarianceMatrices[i][k][j][l])+" ")
-				file.write("\n")
-	file.close()
+file.close()
 
 #	End.

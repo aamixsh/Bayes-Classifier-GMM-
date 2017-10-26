@@ -1,0 +1,20 @@
+The Confusion Matrix of all classes together is: 
+0 0 0 
+10 6 1 
+40 44 49 
+
+The Confusion Matrices for different classes are: 
+
+Class 1: 
+0 0 
+50 100 
+
+Class 2: 
+6 11 
+44 89 
+
+Class 3: 
+49 84 
+1 16 
+
+Different quantitative values are listed below.

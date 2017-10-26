@@ -191,11 +191,6 @@ def calcPrereqTrain(filename):
 			tempMatrix=[[0 for i in range(dimension)] for j in range(dimension)]
 			for n in range(N):
 				tempMatrix+=tempGammaZ[n][k]*np.outer((tempClass[n]-tempClusterMean[k]),(tempClass[n]-tempClusterMean[k]))
-				determinant=np.linalg.det(tempMatrix)
-				while determinant==0:
-					for i in range(dimension):
-						tempMatrix[i][i]+=1
-					determinant=np.linalg.det(tempMatrix)
 			if tempL==0:
 				tempClusterCovarianceMatrices.append(tempMatrix/tempGammaSum[k])
 			else:

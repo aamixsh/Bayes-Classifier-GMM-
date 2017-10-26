@@ -1,55 +1,73 @@
-#	CS669 - Assignment 2 (Group-2) [25/10/17]
+#	CS669 - Assignment 2 (Group-2) [26/10/17]
 #	About: 
-#		This program is for training text data and build GMM parameters for it using different number of clusters.
+#		This program is for training text data of the color histogram feature vectors extracted from images.
 
 import numpy as np
 import math
 import os
 import random
-from PIL import Image
+			
+dimension=24								#	Dimension of data vectors.
+K=3											#	Value of K for making clusters in GMM.
 
-patchHeight=64					#	Height of patches in pixels to be extracted from images.
-patchWidth=64					#	Height of patches in pixels to be extracted from images.
-bins=8							#	Number of bins of each color to decide the dimension of feature vectors to be extracted.
-dimension=0						#	dimension of feature vectors.
+clusters=[]									#	Stores training data in form of clusters under every class for future reference. 
+clusterMeans=[]								#	Stores means of all clusters in all classes.
+clusterCovarianceMatrices=[]				#	Stores covariance matrices of all clusters of all classes.
+clusterPi=[]								#	Stores mixing coefficients for all clusters of all classes.
 
-#	Returns feature vector from a given patch of image.
-def calcVectorforPatch(img,xPnt,yPnt):
-	Vector = [0 for i in range(dimension)]
-	for i in range(patchHeight):
-		for j in range(patchWidth):
-			Vector[int(img[xPnt+i][yPnt+j][0]/32)]+=1
-			Vector[int(8+img[xPnt+i][yPnt+j][1]/32)]+=1
-			Vector[int(16+img[xPnt+i][yPnt+j][2]/32)]+=1
-	return Vector
+#	Return the likelihood of a sample point 'x', given Gaussian parameters 'uK' and 'sigmaK'.
+def likelihood(x,uK,sigmaK):
+	Denom=((((2*math.pi)**(dimension))*(math.fabs(np.linalg.det(sigmaK))))**0.5)
+	if Denom==0:
+		Denom=1e-250
+	value=1.0/Denom
+	temp=[0 for i in range(dimension)]
+	mul=0
+	sigmaInvK=np.asmatrix(sigmaK).I.A
+	for i in range(dimension):
+		for j in range(dimension):
+			temp[i]+=(x[j]-uK[j])*sigmaInvK[j][i]
+	for i in range(dimension):
+		mul+=temp[i]*(x[i]-uK[i])
+	if mul>1000:
+		mul=1000
+	elif mul<-1000:
+		mul=-1000
+	value*=math.exp(-0.5*mul)
+	return value
 
-#	Stores all feature vectors of an image in corresponding file.
-def createHistograms(folder,filename,img,patchHeight,patchWidth,bins):
-	folder="../../data/Output/GMM/Dataset 2/B/featureVectorsBoVW/coast"
-	filename=os.path.splitext(filename)[0]
-	filename+='.txt'
-	z=img.shape
-	x,y=z
-	xPnt=0
-	outfile=open(os.path.join(folder,filename),"w")
-	for i in range(int(x/patchHeight)):
-		yPnt=0
-		for j in range(int(y/patchWidth)):
-			vect = calcVectorforPatch(img,xPnt,j*patchWidth)
-			outfile.write(' '.join(str(e) for e in vect))
-			outfile.write("\n")
-		xPnt+=patchHeight
-	outfile.close()
-	
-#	Distance between two points in 'dimension' dimensional space.
-def calcDist(x,y):
+#	Returns the covaricance between dimension 'i' and 'j', of 'cluster' indexed cluster in class with index 'ind'.
+def Covariance(ind,cluster,i,j):
+	sum=0
+	for k in range(len(clusters[ind][cluster])):
+		x=clusters[ind][cluster][k]
+		sum+=(x[i]-clusterMeans[ind][cluster][i])*(x[j]-clusterMeans[ind][cluster][j])
+	sum/=len(clusters[ind][cluster])
+	return sum
+
+#	Calculates covariance matrices of all clusters in class with index 'ind'.
+def calcCovarianceMat(ind):
+	tempClusterCovarianceMatrices=[]
+	tempSum=0
+	for i in range(K):
+		tempCovarianceMat=[[0 for k in range(dimension)] for j in range(dimension)]
+		for j in range(dimension):
+			for k in range(dimension):
+				tempCovarianceMat[j][k]=Covariance(ind,i,j,k)
+				tempSum+=math.fabs(tempCovarianceMat[j][k])
+		tempClusterCovarianceMatrices.append(tempCovarianceMat)
+	clusterCovarianceMatrices.append(tempClusterCovarianceMatrices)
+
+#	Calculates distance between two points in 'dimension' dimensional space.
+def dist(x,y):
 	distance=0
 	for i in range(dimension):
 		distance+=(x[i]-y[i])**2
-	return math.sqrt(distance)
+	distance=math.sqrt(distance)
+	return (distance)
 
-#	Returns mean vectors of all the K-clusters
-def kMeansClustering(filename):
+#	Function to calculate the paramters of the training model using data in file "filename".
+def calcPrereqTrain(filename):
 	file=open(filename)
 	data=[]
 	for line in file:
@@ -60,120 +78,235 @@ def kMeansClustering(filename):
 	N=len(tempClass)
 	file.close()
 
+	#	K-means clustering for initiating GMM formation...
+
 	#	Assigning random means to the K clusters...
-	tempClusterMean=[[0 for i in range(3*bins)] for i in range(BoVW_VectorLen)]
-	randomKMeans=random.sample(range(0,N-1),BoVW_VectorLen)
-	for i in range(BoVW_VectorLen):
-		for j in range(3*bins):
+	tempClusterMean=[[0 for i in range(dimension)] for i in range(K)]
+	randomKMeans=random.sample(range(0,N-1),K)
+	for i in range(K):
+		for j in range(dimension):
 			tempClusterMean[i][j]=tempClass[randomKMeans[i]][j]
 
 	#	Dividing the data of this class to K clusters...
-	tempClusters=[[] for i in range(BoVW_VectorLen)]
+	tempClusters=[[] for i in range(K)]
 	totDistance=0
-	energy=100
+	energy=np.inf
 	for i in range(N):
 		minDist=np.inf
 		minDistInd=0
-		for j in range(BoVW_VectorLen):
-			Dist=calcDist(tempClass[i],tempClusterMean[j])
+		for j in range(K):
+			Dist=dist(tempClass[i],tempClusterMean[j])
 			if Dist<minDist:
 				minDist=Dist
 				minDistInd=j
 		tempClusters[minDistInd].append(tempClass[i])
 		totDistance+=minDist
-
-	#	Re-evaluating centres until the energy of changes becomes insignificant...
-	while energy>60:
-		tempClusterMean=[[0 for i in range(3*bins)] for i in range(BoVW_VectorLen)]
-		for i in range(BoVW_VectorLen):
+	
+	#	Re-evaluating centres until the energy of changes becomes insignificant (convergence)...
+	while energy>0.000001:
+		tempClusterMean=[[0 for i in range(dimension)] for i in range(K)]
+		for i in range(K):
 			for j in range(len(tempClusters[i])):
-				for k in range(3*bins):
+				for k in range(dimension):
 					tempClusterMean[i][k]+=tempClusters[i][j][k]
-			for k in range(3*bins):
-				if len(tempClusters[i])==0:
-					#tempClusterMean[i]=
-					break;
-				else:
-					tempClusterMean[i][k]/=len(tempClusters[i])
-		tempClusters=[[] for i in range(BoVW_VectorLen)]
+			for k in range(dimension):
+				tempClusterMean[i][k]/=len(tempClusters[i])
+		tempClusters=[[] for i in range(K)]
 		newTotDistance=0
 		for i in range(N):
 			minDist=np.inf
 			minDistInd=0
-			for j in range(BoVW_VectorLen):
-				Dist=calcDist(tempClass[i],tempClusterMean[j])
+			for j in range(K):
+				Dist=dist(tempClass[i],tempClusterMean[j])
 				if Dist<minDist:
 					minDist=Dist
 					minDistInd=j
 			tempClusters[minDistInd].append(tempClass[i])
 			newTotDistance+=minDist
-		energy=math.fabs(totDistance-newTotDistance);
-		totDistance=newTotDistance;
-		print(energy)
-	return tempClusterMean
+		energy=math.fabs(totDistance-newTotDistance)
+		totDistance=newTotDistance
+
+	clusters.append(tempClusters)
+	clusterMeans.append(tempClusterMean)
+	
+	tempClassInd=len(clusters)-1
+	tempClassSize=N
+	
+	#	Calculating Covariance Matrices for all clusters...
+	calcCovarianceMat(tempClassInd)
+	
+	#	Calculating mixing coefficients for all clusters...
+	tempClusterPi=[]
+	for i in range(K):
+		# print len(tempClusters[i])
+		tempClusterPi.append(float(len(tempClusters[i]))/N)
+
+	#	Gaussian Mixture Modelling...
+
+	#	Using these initial calculated values for the EM algorithm.
+	
+	tempClusterCovarianceMatrices=clusterCovarianceMatrices[tempClassInd]
+	energy=np.inf
+	tempL=0
+
+	while energy>5000:
+		
+		#	Expectation step in the algorithm...
+		tempGammaZ=[[0 for i in range (K)] for j in range (N)]
+		tempLikelihoodTerms=[[0 for i in range(K)] for j in range(N)]
+		tempDenom=[0 for i in range(N)]
+		tempGammaSum=[0 for i in range(K)]
+		newTempL=0
+
+		print energy
+
+		#	Calculating responsibilty terms using previous values of parameters. 
+		for n in range(N):
+			for k in range(K):
+				determinant=np.linalg.det(tempClusterCovarianceMatrices[k])
+				while determinant==0:
+					print tempClusterCovarianceMatrices[k]
+					for i in range(dimension):
+						tempClusterCovarianceMatrices[k][i][i]+=0.001
+					determinant=np.linalg.det(tempClusterCovarianceMatrices[k])
+				varLikelihood=likelihood(tempClass[n],tempClusterMean[k],tempClusterCovarianceMatrices[k])
+				if varLikelihood==0:
+					varLikelihood=1e-250
+				tempLikelihoodTerms[n][k]=tempClusterPi[k]*varLikelihood
+				tempDenom[n]+=tempLikelihoodTerms[n][k]
+			for k in range(K):
+				# print tempDenom[n]
+				tempGammaZ[n][k]=tempLikelihoodTerms[n][k]/tempDenom[n]
+				tempGammaSum[k]+=tempGammaZ[n][k]
+
+		#	Maximization step in the algorithm...
+		#	Refining mean vectors.
+		for k in range(K):
+			# print tempGammaSum[k]
+			for i in range(dimension):
+				tempClusterMean[k][i]=0
+				for n in range(N):
+					tempClusterMean[k][i]+=tempGammaZ[n][k]*tempClass[n][i]
+				tempClusterMean[k][i]/=tempGammaSum[k]
+
+		#	Refining covariance matrices.
+		for k in range(K):
+			tempMatrix=[[0 for i in range(dimension)] for j in range(dimension)]
+			for n in range(N):
+				tempMatrix+=tempGammaZ[n][k]*np.outer((tempClass[n]-tempClusterMean[k]),(tempClass[n]-tempClusterMean[k]))
+			if tempL==0:
+				tempClusterCovarianceMatrices.append(tempMatrix/tempGammaSum[k])
+			else:
+				tempClusterCovarianceMatrices[k]=tempMatrix/tempGammaSum[k]
+
+		#	Refining mixing coefficients.
+		for k in range(K):
+			tempClusterPi[k]=tempGammaSum[k]/N
+			# print tempClusterPi[k]
+
+		for n in range(N):
+			newTempL+=math.log(tempDenom[n])
+
+		if tempL==0:
+			tempL=newTempL
+			continue
+		else:
+			energy=math.fabs(tempL-newTempL)
+			tempL=newTempL
+
+	clusterMeans[tempClassInd]=tempClusterMean
+	clusterCovarianceMatrices[tempClassInd]=tempClusterCovarianceMatrices
+	clusterPi.append(tempClusterPi)
+	print "\n"
+
+#	Creates subdirectories if not present in a path.
+def createPath(output):
+	if not os.path.exists(os.path.dirname(output)):
+		try:
+			os.makedirs(os.path.dirname(output))
+		except OSError as exc:
+			if exc.errorno!=errorno.EEXIST:
+				raise
+
+#	Clubs data of all directories in 'direct' directory into file 'output'
+def club(output,direct,ind):
+	createPath(output)
+	outputFile=open(output,"w")
+	for contents in os.listdir(direct):
+		if ind==1:
+			contentName=os.path.join(direct,contents)
+			if os.path.isdir(contentName):
+				for filename in os.listdir(contentName):
+					file=open(os.path.join(contentName,filename))
+					outputFile.write(file.read())
+		else:
+			file=open(os.path.join(direct,contents))
+			outputFile.write(file.read())
+
+#	Program starts here...
+print ("\nThis program is for training text data of the color histogram feature vectors extracted from images.\n")
+print ("It will build GMM parameters for it using different number of clusters.\n")
+
+#	Parsing Input... 
+choice= raw_input("Do you want to use your own directory for training input and output or default (o/d): ")
+
+direct=""
+directO=""
+
+if(choice=='o'):
+	direct=raw_input("Enter the path (relative or complete) of the training data directory: ")
+	dimension=input("Enter the number of dimensions in the data (for input format, refer README.txt): ")
+	directO=raw_input("Enter the path (relative or complete) of the directory to store parameters of the training model: ")
+else:
+	direct="../../data/Output/GMM/Dataset 2/B/featureVectorsCH/train"
+	directO="../../data/Output/GMM/Dataset 2/B/train_model_CH/"
 
 
-def classify(patchVector,means):
-	mini=np.inf
-	ind = 0
-	for i in range(len(means)):
-		dist=calcDist(patchVector,means[i])
-		if dist < mini:
-			ind = i
-			mini = dist
-	return ind
+if direct[len(direct)-1]!='/':
+	direct+="/"
+if directO[len(directO)-1]!='/':
+	directO+="/"
 
+print "Enter the value of K upto which you want to generate training models."
+maxK=input("Beware, large K's can result in singularity problems: ")
 
-#this function will take input a folder and output 2D array having 64 dimensional vector corresponding to each file in folder
-def BagofVisualWorlds(folder):
-	featureVectors = []
-	#concatinating all the files
-	outfile=open(os.path.join(folder,"BoVW.txt"), 'w')
-	for filename in os.listdir(folder):
-		if filename!="BoVW.txt":
-			if os.path.splitext(filename)[1] == ".txt":
-				infile=open(os.path.join(folder,filename))
-				for line in infile:
-					outfile.write(line)
-				infile.close()
-	outfile.close()
+print "Clubbing feature vectors of all images in a class together..."
+for contents in os.listdir(direct):
+	contentName=os.path.join(direct,contents)
+	if os.path.isdir(contentName) and contents!="use":
+		createPath(os.path.join(direct,"use",contents+".txt"))
+		club(os.path.join(direct,"use",contents+".txt"),contentName,2)
 
-	#generating mean vectors from the concatinated file :p
-	means = kMeansClustering(os.path.join(folder,"BoVW.txt"))
+for k in range(maxK):
+	
+	clusters=[]
+	clusterMeans=[]
+	clusterCovarianceMatrices=[]
+	clusterPi=[]
+	K=k+1
+	
+	print "Training data for K = "+str(K)+"..."
+	for filename in os.listdir(os.path.join(direct,"use")):
+		calcPrereqTrain(os.path.join(direct,"use",filename))
 
-	for filename in os.listdir(folder):
-		featureVector=[0 for i in range(BoVW_VectorLen)]
-		if os.path.splitext(filename)[1] == ".txt":
-			infile = open(os.path.join(folder,filename))
-			for line in infile:
-				number_strings=line.split()
-				numbers=[float(n) for n in number_strings]
-				clusterNum=classify(numbers,means)
-				featureVector[clusterNum]+=1
-			infile.close()
-			featureVectors.append(featureVector)
-	file=open("../../data/Output/GMM/Dataset 2/B/featureVectorsBoVW/coast_BoVW")
-	for i in range(len(featureVectors)):
-		for j in range(len(featureVectors[i])):
-			file.write(str(featureVectors[i][j])+" ")
+	print "Data training complete. Writing results in a file for future use..."
+	file=open(directO+"k"+str(K)+".txt","w")
+	file.write(str(dimension)+" "+str(K)+" "+str(len(clusters))+"\n")
+	for i in range(len(clusterPi)):
+		for k in range(K):
+			file.write(str(clusterPi[i][k])+" ")
 		file.write("\n")
-	return featureVectors
+	for i in range(len(clusterMeans)):
+		for k in range(K):
+			for j in range(dimension):
+				file.write(str(clusterMeans[i][k][j])+" ")
+			file.write("\n")
+	for i in range(len(clusterCovarianceMatrices)):
+		for k in range(K):
+			for j in range(dimension):
+				for l in range(dimension):
+					file.write(str(clusterCovarianceMatrices[i][k][j][l])+" ")
+				file.write("\n")
+	file.close()
 
-
-#argument should be a folder name where all the images of a class are present
-#functioin should return the matrix containing 64 dimension vector corresponding to each image file in a folder
-def generateFeatureVectors(folder):
-    # for filename in os.listdir(folder):
-    # 	if os.path.splitext(filename)[1] == ".jpg":
-    #     	img = Image.open(os.path.join(folder,filename))
-	   #      if img is not None:
-	   #          createHistograms(folder,filename,np.array(img),patchHeight,patchWidth,bins)
-    return BagofVisualWorlds("../../data/Output/GMM/Dataset 2/B/featureVectorsBoVW/coast")
-
-
-dimension = bins*3
-
-images=generateFeatureVectors("../../data/Input/GMM/Dataset 2/B/train/coast")
-
-
-print (images)
+#	End.
