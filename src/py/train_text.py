@@ -1,4 +1,5 @@
-#	CS669 - Assignment 2 (Group-2) [24/10/17]
+#	CS669 - Assignment 2 (Group-2) 
+#	Last edit: 28/10/17
 #	About: 
 #		This program is for training text data and build GMM parameters for it using different number of clusters.
 
@@ -160,7 +161,6 @@ def calcPrereqTrain(filename):
 			for k in range(K):
 				determinant=np.linalg.det(tempClusterCovarianceMatrices[k])
 				while determinant==0:
-					print tempClusterCovarianceMatrices[k]
 					for i in range(dimension):
 						tempClusterCovarianceMatrices[k][i][i]+=0.001
 					determinant=np.linalg.det(tempClusterCovarianceMatrices[k])

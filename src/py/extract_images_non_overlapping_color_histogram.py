@@ -1,4 +1,5 @@
-#	CS669 - Assignment 2 (Group-2) [25/10/17]
+#	CS669 - Assignment 2 (Group-2) 
+#	Last edit: 28/10/17
 #	About: 
 #		This program extracts color histogram feature vectors from images for a given non-overlapping patch size.
 
@@ -104,4 +105,5 @@ print "Now generating feature vectors of test images..."
 extractFeature(directT,directOtest)
 
 print "Read everything successfully."
-#	End.	            
+
+#	End.

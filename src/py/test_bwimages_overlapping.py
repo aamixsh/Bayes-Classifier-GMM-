@@ -1,6 +1,7 @@
-#	CS669 - Assignment 2 (Group-2) [24/10/17]
+#	CS669 - Assignment 2 (Group-2) 
+#	Last edit: 28/10/17
 #	About: 
-#		This program is for testing text data on the training models built using different number of clusters for GMM.
+#		This program is for testing text data on the training model built with 3 clustered GMM.
 
 import numpy as np
 import math
@@ -51,9 +52,9 @@ def Test(direct,ind):
 		if ret==0:
 			outputData+=chr(255)+chr(255)+chr(255)
 		elif ret==1:
-			outputData+=chr(0)+chr(0)+chr(0)
-		else:
 			outputData+=chr(127)+chr(127)+chr(127)
+		else:
+			outputData+=chr(0)+chr(0)+chr(0)
 	im=Image.frombytes("RGB",(imageSize[ind][0],imageSize[ind][1]),outputData)
 	im.save(os.path.join(direct+filename)+str(ind)+".png","PNG")
 
@@ -100,118 +101,51 @@ if directO[len(directO)-1]!='/':
 
 print "Calculating Prerequisties..."
 for filename in os.listdir(direct):
-	calcPrereqTest(direct+filename)
+	if not os.path.isdir(os.path.join(direct,filename)):
+		calcPrereqTest(direct+filename)
 print "Done. Testing and creating output images..."
 
 for filename in os.listdir(directM):
 	
-	file=open(directM+filename)
+	if not os.path.isdir(os.path.join(directM,filename)):
+		file=open(directM+filename)
 
-	Input=file.readline()
-	numbers=Input.split()
-	inputFormat=[int(n) for n in numbers]
-	dimension=inputFormat[0]
-	K=inputFormat[1]
+		Input=file.readline()
+		numbers=Input.split()
+		inputFormat=[int(n) for n in numbers]
+		dimension=inputFormat[0]
+		K=inputFormat[1]
 
-	clusterMeans=[]
-	clusterCovarianceMatrices=[]
-	clusterPi=[]
-	confusionMatClass=[]
-	confusionMatrix=[]
+		clusterMeans=[]
+		clusterCovarianceMatrices=[]
+		clusterPi=[]
+		confusionMatClass=[]
+		confusionMatrix=[]
 
-	line=file.readline()
-	numbers=line.split()
-	for x in numbers:
-		clusterPi.append(float(x))
-
-	for k in range(K):
 		line=file.readline()
 		numbers=line.split()
-		tempClusterMeans=[float(x) for x in numbers]
-		clusterMeans.append(tempClusterMeans)
+		for x in numbers:
+			clusterPi.append(float(x))
 
-	for k in range(K):
-		tempClusterCovarianceMatrix=[]
-		for i in range(dimension):
+		for k in range(K):
 			line=file.readline()
 			numbers=line.split()
-			tempCovarianceMatrixRow=[float(x) for x in numbers]
-			tempClusterCovarianceMatrix.append(tempCovarianceMatrixRow)
-		clusterCovarianceMatrix=np.array(tempClusterCovarianceMatrix)
-		clusterCovarianceMatrices.append(clusterCovarianceMatrix)	
+			tempClusterMeans=[float(x) for x in numbers]
+			clusterMeans.append(tempClusterMeans)
 
-	print "Testing data for file "+filename+"..."
-	if filename=="gmm_k3_energy_267185.508057.txt":	
-		for i in range(3):
-			Test(directO,i)
+		for k in range(K):
+			tempClusterCovarianceMatrix=[]
+			for i in range(dimension):
+				line=file.readline()
+				numbers=line.split()
+				tempCovarianceMatrixRow=[float(x) for x in numbers]
+				tempClusterCovarianceMatrix.append(tempCovarianceMatrixRow)
+			clusterCovarianceMatrix=np.array(tempClusterCovarianceMatrix)
+			clusterCovarianceMatrices.append(clusterCovarianceMatrix)	
 
-	# #	Calculating confusion matrices...
-	# for i in range(numClasses):
-	# 	calcConfusionClass(i)
-	# calcConfusion()
-	
-	# print "Data testing complete. Writing results in files for future reference..."
-	# filev=open(directO+"values_k"+str(K)+".txt","w")
-	# filer=open(directO+"results_k"+str(K)+".txt","w")
-	
-	# filer.write("The Confusion Matrix of all classes together is: \n")
-	# for i in range(numClasses):
-	# 	for j in range(numClasses):
-	# 		filev.write(str(confusionMatrix[i][j])+" ")
-	# 		filer.write(str(confusionMatrix[i][j])+" ")
-	# 	filev.write("\n")
-	# 	filer.write("\n")
+		print "Testing data for file "+filename+"..."	
+		if filename=="init_k3.txt":
+			for i in range(len(testData)):
+				Test(directO,i)
 
-	# filer.write("\nThe Confusion Matrices for different classes are: \n")
-	# for i in range(len(confusionMatClass)):
-	# 	filer.write("\nClass "+str(i+1)+": \n")
-	# 	for x in range(2):
-	# 		for y in range(2):
-	# 			filev.write(str(confusionMatClass[i][x][y])+" ")
-	# 			filer.write(str(confusionMatClass[i][x][y])+" ")
-	# 		filev.write("\n")
-	# 		filer.write("\n")
-
-	# Accuracy=[]
-	# Precision=[]
-	# Recall=[]
-	# FMeasure=[]
-
-	# filer.write("\nDifferent quantitative values are listed below.\n")
-	# for i in range(numClasses):
-	# 	tp=confusionMatClass[i][0][0]
-	# 	fp=confusionMatClass[i][0][1]
-	# 	fn=confusionMatClass[i][1][0]
-	# 	tn=confusionMatClass[i][1][1]
-	# 	accuracy=float(tp+tn)/(tp+tn+fp+fn)
-	# 	precision=float(tp)/(tp+fp)
-	# 	recall=float(tp)/(tp+fn)
-	# 	fMeasure=2*precision*recall/(precision+recall)
-	# 	filer.write("\nClassification Accuracy for class "+str(i+1)+" is "+str(accuracy)+"\n")
-	# 	filer.write("Precision for class "+str(i+1)+" is "+str(precision)+"\n")
-	# 	filer.write("Recall for class "+str(i+1)+" is "+str(recall)+"\n")
-	# 	filer.write("F-measure for class "+str(i+1)+" is "+str(fMeasure)+"\n")
-	# 	filev.write(str(accuracy)+" "+str(precision)+" "+str(recall)+" "+str(fMeasure)+"\n")
-	# 	Accuracy.append(accuracy),Precision.append(precision),Recall.append(recall),FMeasure.append(fMeasure)
-
-	# avgAccuracy,avgPrecision,avgRecall,avgFMeasure=0,0,0,0
-	# for i in range (numClasses):
-	# 	avgAccuracy+=Accuracy[i]
-	# 	avgPrecision+=Precision[i]
-	# 	avgRecall+=Recall[i]
-	# 	avgFMeasure+=FMeasure[i]
-	# avgAccuracy/=len(clusterMeans)
-	# avgPrecision/=len(clusterMeans)
-	# avgRecall/=len(clusterMeans)
-	# avgFMeasure/=len(clusterMeans)
-
-	# filer.write("\nAverage classification Accuracy is "+str(avgAccuracy)+"\n")
-	# filer.write("Average precision is "+str(avgPrecision)+"\n")
-	# filer.write("Average recall is "+str(avgRecall)+"\n")
-	# filer.write("Average F-measure is "+str(avgFMeasure)+"\n")
-	# filer.write("\n**End of results**")
-	# filev.write(str(avgAccuracy)+" "+str(avgPrecision)+" "+str(avgRecall)+" "+str(avgFMeasure)+"\n")
-	# filer.close()
-	# filev.close()
-	
 #	End.

@@ -1,4 +1,5 @@
-#	CS669 - Assignment 2 (Group-2) [26/10/17]
+#	CS669 - Assignment 2 (Group-2) 
+#	Last edit: 28/10/17
 #	About: 
 #		This program is for training text data of the color histogram feature vectors extracted from images.
 
@@ -136,7 +137,6 @@ def calcPrereqTrain(filename):
 	#	Calculating mixing coefficients for all clusters...
 	tempClusterPi=[]
 	for i in range(K):
-		print len(tempClusters[i]),N,float(len(tempClusters[i]))/N
 		tempClusterPi.append(float(len(tempClusters[i]))/N)
 
 	#	Gaussian Mixture Modelling...
@@ -161,7 +161,6 @@ def calcPrereqTrain(filename):
 			for k in range(K):
 				determinant=np.linalg.det(tempClusterCovarianceMatrices[k])
 				while determinant==0:
-					print tempClusterCovarianceMatrices[k]
 					for i in range(dimension):
 						tempClusterCovarianceMatrices[k][i][i]+=0.001
 					determinant=np.linalg.det(tempClusterCovarianceMatrices[k])
@@ -171,21 +170,17 @@ def calcPrereqTrain(filename):
 				tempLikelihoodTerms[n][k]=tempClusterPi[k]*varLikelihood
 				tempDenom[n]+=tempLikelihoodTerms[n][k]
 			for k in range(K):
-				# print tempDenom[n]
 				tempGammaZ[n][k]=tempLikelihoodTerms[n][k]/tempDenom[n]
 				tempGammaSum[k]+=tempGammaZ[n][k]
 
 		#	Maximization step in the algorithm...
 		#	Refining mean vectors.
 		for k in range(K):
-			# print tempGammaSum[k]
 			for i in range(dimension):
 				tempClusterMean[k][i]=0
 				for n in range(N):
 					tempClusterMean[k][i]+=tempGammaZ[n][k]*tempClass[n][i]
 				tempClusterMean[k][i]/=tempGammaSum[k]
-			print tempClusterMean[k]
-			print tempGammaSum[k]
 
 		#	Refining covariance matrices.
 		for k in range(K):
@@ -203,28 +198,23 @@ def calcPrereqTrain(filename):
 			else:
 				tempClusterCovarianceMatrices[k]=tempMatrix
 
-		print "hahah"
 		#	Refining mixing coefficients.
 		for k in range(K):
 			tempClusterPi[k]=tempGammaSum[k]/N
-			print tempClusterPi[k]
 
 		for n in range(N):
 			newTempL+=math.log(tempDenom[n])
 
-		print tempL,newTempL
 		if tempL==0:
 			tempL=newTempL
 			continue
 		else:
 			energy=math.fabs(tempL-newTempL)
 			tempL=newTempL
-		print energy
 
 	clusterMeans[tempClassInd]=tempClusterMean
 	clusterCovarianceMatrices[tempClassInd]=tempClusterCovarianceMatrices
 	clusterPi.append(tempClusterPi)
-	print "\n"
 
 #	Creates subdirectories if not present in a path.
 def createPath(output):
@@ -290,7 +280,7 @@ for k in range(maxK):
 	clusterMeans=[]
 	clusterCovarianceMatrices=[]
 	clusterPi=[]
-	K=k+3
+	K=k+1
 
 	print "Training data for K = "+str(K)+"..."
 	for filename in os.listdir(os.path.join(direct,"use")):

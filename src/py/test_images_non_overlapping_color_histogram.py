@@ -1,10 +1,10 @@
-#	CS669 - Assignment 2 (Group-2) [24/10/17]
+#	CS669 - Assignment 2 (Group-2) 
+#	Last edit: 28/10/17
 #	About: 
-#		This program is for testing text data on the training models built using different number of clusters for GMM.
+#		This program is for testing text data of the color histogram feature vectors extracted from images and given GMM.
 
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 import os
 import random
 				
@@ -49,13 +49,15 @@ def preCalcLikelihood():
 							tempValue=1e-300
 						value+=math.log(clusterPi[c][k]*tempValue)
 				tempClassValues.append(value)
-			print tempClassValues
 			tempTestDataValues.append(tempClassValues)
 		testDataValues.append(tempTestDataValues)
 
 #	Return the likelihood of a sample point 'x', given Gaussian parameters 'uK' and 'sigmaK'.
 def likelihood(x,uK,sigmaK):
-	value=1.0/((((2*math.pi)**(dimension))*(math.fabs(np.linalg.det(sigmaK))))**0.5)
+	Denom=((((2*math.pi)**(dimension))*(math.fabs(np.linalg.det(sigmaK))))**0.5)
+	if Denom==0:
+		Denom=1e-300
+	value=1.0/Denom
 	temp=[0 for i in range(dimension)]
 	mul=0
 	sigmaInvK=np.asmatrix(sigmaK).I.A
@@ -64,18 +66,15 @@ def likelihood(x,uK,sigmaK):
 			temp[i]+=(x[j]-uK[j])*sigmaInvK[j][i]
 	for i in range(dimension):
 		mul+=temp[i]*(x[i]-uK[i])
+	if mul>1000:
+		mul=1000
+	elif mul<-1000:
+		mul=-1000
 	value*=math.exp(-0.5*mul)
 	return value
 
 #	Returns in the index of class with maximum likelihood of having the sample point 'x'.
 def classifyLikelihood(i,j):
-	# val=[0 for i in range(len(clusterMeans))]
-	# for i in range(len(clusterMeans)):
-	# 	for k in range(K):
-	# 		for y in range(len(x)):
-	# 			val[i]+=math.log(clusterPi[i][k]*likelihood(x[y],clusterMeans[i][k],clusterCovarianceMatrices[i][k]))
-	# print val
-	# print testDataValues[i][j]
 	return np.argmax(testDataValues[i][j])
 
 #	Calculates the confusion matrix of all classes together.
@@ -84,9 +83,7 @@ def calcConfusion():
 	confusionMatrix=[[0 for i in range(len(clusterMeans))] for i in range(len(clusterMeans))]
 	for i in range(len(testData)):
 		for j in range(len(testData[i])):
-			# x=testData[i][j]
 			ret=classifyLikelihood(i,j)
-			print ret
 			confusionMatrix[ret][i]+=1
 
 #	Calculates the confusion matrix of class with index 'ind' with respect to all other classes.
@@ -94,9 +91,7 @@ def calcConfusionClass(ind):
 	temp=[[0 for i in range(2)] for j in range(2)]
 	for j in range(len(testData)):
 		for i in range(len(testData[j])):
-			# x=testData[j][i]
 			ret=classifyLikelihood(j,i)
-			print ret
 			if ind==j:
 				if ret==ind:
 					temp[0][0]+=1
@@ -144,9 +139,6 @@ for contents in os.listdir(direct):
 print "Done."
 
 for filename in os.listdir(directM):
-	
-	if filename!="k3.txt":
-		continue
 
 	file=open(directM+filename)
 	Input=file.readline()

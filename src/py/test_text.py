@@ -1,10 +1,10 @@
-#	CS669 - Assignment 2 (Group-2) [24/10/17]
+#	CS669 - Assignment 2 (Group-2) 
+#	Last edit: 28/10/17
 #	About: 
 #		This program is for testing text data on the training models built using different number of clusters for GMM.
 
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 import os
 import random
 				
@@ -32,7 +32,10 @@ def calcPrereqTest(filename):
 
 #	Return the likelihood of a sample point 'x', given Gaussian parameters 'uK' and 'sigmaK'.
 def likelihood(x,uK,sigmaK):
-	value=1.0/(((2*math.pi)**(dimension))*((np.linalg.det(sigmaK)))**0.5)
+	Denom=((((2*math.pi)**(dimension))*(math.fabs(np.linalg.det(sigmaK))))**0.5)
+	if Denom==0:
+		Denom=1e-300
+	value=1.0/Denom
 	temp=[0 for i in range(dimension)]
 	mul=0
 	sigmaInvK=np.asmatrix(sigmaK).I.A
@@ -41,6 +44,10 @@ def likelihood(x,uK,sigmaK):
 			temp[i]+=(x[j]-uK[j])*sigmaInvK[j][i]
 	for i in range(dimension):
 		mul+=temp[i]*(x[i]-uK[i])
+	if mul>1000:
+		mul=1000
+	elif mul<-1000:
+		mul=-1000
 	value*=math.exp(-0.5*mul)
 	return value
 

@@ -1,4 +1,5 @@
-#	CS669 - Assignment 2 (Group-2) [24/10/17]
+#	CS669 - Assignment 2 (Group-2) 
+#	Last edit: 28/10/17
 #	About: 
 #		This program is for training text data and build GMM parameters for it using different number of clusters.
 
@@ -80,7 +81,6 @@ def calcPrereqTrain(filename):
 	N=len(tempClass)
 	del data
 	file.close()
-	print "done"
 	#	K-means clustering for initiating GMM formation...
 
 	#	Assigning random means to the K clusters...
@@ -90,7 +90,6 @@ def calcPrereqTrain(filename):
 		for j in range(dimension):
 			tempClusterMean[i][j]=tempClass[randomKMeans[i]][j]
 
-	print tempClusterMean
 	#	Dividing the data of this class to K clusters...
 	tempClusters=[[] for i in range(K)]
 	totDistance=0
@@ -116,7 +115,6 @@ def calcPrereqTrain(filename):
 
 	tempClusterPi=[]
 	for i in range(K):
-		print len(tempClass[i])
 		tempClusterPi.append(float(len(tempClusters[i]))/N)
 
 	clusterPi.append(tempClusterPi)
@@ -164,8 +162,7 @@ def calcPrereqTrain(filename):
 			newTotDistance+=minDist
 		energy=math.fabs(totDistance-newTotDistance)
 		totDistance=newTotDistance
-		print energy
-	
+
 	clusters[tempClassInd]=tempClusters
 	clusterMeans[tempClassInd]=tempClusterMean
 
@@ -174,7 +171,6 @@ def calcPrereqTrain(filename):
 	
 	#	Calculating mixing coefficients for all clusters...
 	for i in range(K):
-		print len(clusters[tempClassInd][i])
 		clusterPi[tempClassInd][k]=(float(len(clusters[tempClassInd][i]))/N)
 
 	file=open(directO+"after_K_Means_k"+str(K)+".txt","w")
@@ -196,8 +192,6 @@ def calcPrereqTrain(filename):
 				file.write("\n")
 	file.close()
 
-	del clusters
-
 	#	Gaussian Mixture Modelling...
 
 	#	Using these initial calculated values for the EM algorithm.
@@ -205,7 +199,6 @@ def calcPrereqTrain(filename):
 	tempClusterCovarianceMatrices=clusterCovarianceMatrices[tempClassInd]
 	energy=np.inf
 	tempL=0
-	print "lol"
 
 	while energy>100:
 		
@@ -221,7 +214,6 @@ def calcPrereqTrain(filename):
 			for k in range(K):
 				determinant=np.linalg.det(tempClusterCovarianceMatrices[k])
 				while determinant==0:
-					print tempClusterCovarianceMatrices[k]
 					for i in range(dimension):
 						tempClusterCovarianceMatrices[k][i][i]+=0.001
 					determinant=np.linalg.det(tempClusterCovarianceMatrices[k])
@@ -292,8 +284,6 @@ def calcPrereqTrain(filename):
 					file.write("\n")
 		file.close()
 
-		print energy
-
 	clusterMeans[tempClassInd]=tempClusterMean
 	clusterCovarianceMatrices[tempClassInd]=tempClusterCovarianceMatrices
 	clusterPi.append(tempClusterPi)
@@ -318,7 +308,8 @@ if directO[len(directO)-1]!='/':
 
 print "Training data for K = "+str(K)+"..."
 for filename in os.listdir(direct):
-	calcPrereqTrain(direct+filename)
+	if filename=="trainingFeatures.txt":
+		calcPrereqTrain(direct+filename)
 
 print "Data training complete. Writing results in a file for future use..."
 file=open(directO+"k"+str(K)+".txt","w")

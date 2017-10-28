@@ -1,6 +1,7 @@
-#	CS669 - Assignment 2 (Group-2) [25/10/17]
+#	CS669 - Assignment 2 (Group-2) 
+#	Last edit: 28/10/17
 #	About: 
-#		This program is for training text data and build GMM parameters for it using different number of clusters.
+#		This program extracts Bag-of-Visual-Words feature vectors of images from their color histogram features.
 
 import numpy as np
 import math
@@ -184,17 +185,21 @@ print "Clubbing all feature vectors of all training images together..."
 club(directOtrain+"train.txt",direct,1)
 
 print "Clustering the training data into "+str(BoVW_VectorLen)+" clusters."
+
 print "This may take a while, be patient..."
 clusters=kMeansClustering(os.path.join(directOtrain,"train.txt"))
+
 print "Done. Now making BoVW feature vectors of all images in training and test dataset."
 makeBoVW(clusters,direct,directOtrain)
 makeBoVW(clusters,directT,directOtest)
+
 print "Clubbing image BoVW feature vectors of a class together..."
 for contents in os.listdir(directOtrain):
 	contentName=os.path.join(directOtrain,contents)
 	if os.path.isdir(contentName) and contents!="use":
 		createPath(os.path.join(directOtrain,"use",contents+".txt"))
 		club(os.path.join(directOtrain,"use",contents+".txt"),contentName,2)
+
 for contents in os.listdir(directOtest):
 	contentName=os.path.join(directOtest,contents)
 	if os.path.isdir(contentName) and contents!="use":

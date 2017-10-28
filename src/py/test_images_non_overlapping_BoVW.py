@@ -1,6 +1,7 @@
-#	CS669 - Assignment 2 (Group-2) [24/10/17]
+#	CS669 - Assignment 2 (Group-2) 
+#	Last edit: 28/10/17
 #	About: 
-#		This program is for testing text data on the training models built using different number of clusters for GMM.
+#		This program is for testing text data of the Bag-of-Visual-Words feature vectors extracted from images and given GMM.
 
 import numpy as np
 import math
