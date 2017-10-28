@@ -17,7 +17,10 @@ clusterPi=[]								#	Stores mixing coefficients for all clusters of all classes
 
 #	Return the likelihood of a sample point 'x', given Gaussian parameters 'uK' and 'sigmaK'.
 def likelihood(x,uK,sigmaK):
-	value=1.0/((((2*math.pi)**(dimension))*(math.fabs(np.linalg.det(sigmaK))))**0.5)
+	Denom=((((2*math.pi)**(dimension))*(math.fabs(np.linalg.det(sigmaK))))**0.5)
+	if Denom==0:
+		Denom=1e-300
+	value=1.0/Denom
 	temp=[0 for i in range(dimension)]
 	mul=0
 	sigmaInvK=np.asmatrix(sigmaK).I.A
@@ -26,6 +29,10 @@ def likelihood(x,uK,sigmaK):
 			temp[i]+=(x[j]-uK[j])*sigmaInvK[j][i]
 	for i in range(dimension):
 		mul+=temp[i]*(x[i]-uK[i])
+	if mul>1000:
+		mul=1000
+	elif mul<-1000:
+		mul=-1000
 	value*=math.exp(-0.5*mul)
 	return value
 
@@ -151,7 +158,16 @@ def calcPrereqTrain(filename):
 		#	Calculating responsibilty terms using previous values of parameters. 
 		for n in range(N):
 			for k in range(K):
-				tempLikelihoodTerms[n][k]=tempClusterPi[k]*likelihood(tempClass[n],tempClusterMean[k],tempClusterCovarianceMatrices[k])
+				determinant=np.linalg.det(tempClusterCovarianceMatrices[k])
+				while determinant==0:
+					print tempClusterCovarianceMatrices[k]
+					for i in range(dimension):
+						tempClusterCovarianceMatrices[k][i][i]+=0.001
+					determinant=np.linalg.det(tempClusterCovarianceMatrices[k])
+				varLikelihood=likelihood(tempClass[n],tempClusterMean[k],tempClusterCovarianceMatrices[k])
+				if varLikelihood==0:
+					varLikelihood=1e-300
+				tempLikelihoodTerms[n][k]=tempClusterPi[k]*varLikelihood
 				tempDenom[n]+=tempLikelihoodTerms[n][k]
 			for k in range(K):
 				tempGammaZ[n][k]=tempLikelihoodTerms[n][k]/tempDenom[n]
@@ -171,10 +187,16 @@ def calcPrereqTrain(filename):
 			tempMatrix=[[0 for i in range(dimension)] for j in range(dimension)]
 			for n in range(N):
 				tempMatrix+=tempGammaZ[n][k]*np.outer((tempClass[n]-tempClusterMean[k]),(tempClass[n]-tempClusterMean[k]))
+			tempMatrix/=tempGammaSum[k]
+			determinant=np.linalg.det(tempMatrix)
+			while determinant==0:
+				for i in range(dimension):
+					tempMatrix[i][i]+=1
+				determinant=np.linalg.det(tempMatrix)
 			if tempL==0:
-				tempClusterCovarianceMatrices.append(tempMatrix/tempGammaSum[k])
+				tempClusterCovarianceMatrices.append(tempMatrix)
 			else:
-				tempClusterCovarianceMatrices[k]=tempMatrix/tempGammaSum[k]
+				tempClusterCovarianceMatrices[k]=tempMatrix
 
 		#	Refining mixing coefficients.
 		for k in range(K):

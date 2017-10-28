@@ -145,6 +145,9 @@ print "Done."
 
 for filename in os.listdir(directM):
 	
+	if filename!="k3.txt":
+		continue
+
 	file=open(directM+filename)
 	Input=file.readline()
 	numbers=Input.split()

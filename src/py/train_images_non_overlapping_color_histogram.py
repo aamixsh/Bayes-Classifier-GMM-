@@ -19,7 +19,7 @@ clusterPi=[]								#	Stores mixing coefficients for all clusters of all classes
 def likelihood(x,uK,sigmaK):
 	Denom=((((2*math.pi)**(dimension))*(math.fabs(np.linalg.det(sigmaK))))**0.5)
 	if Denom==0:
-		Denom=1e-250
+		Denom=1e-300
 	value=1.0/Denom
 	temp=[0 for i in range(dimension)]
 	mul=0
@@ -48,13 +48,11 @@ def Covariance(ind,cluster,i,j):
 #	Calculates covariance matrices of all clusters in class with index 'ind'.
 def calcCovarianceMat(ind):
 	tempClusterCovarianceMatrices=[]
-	tempSum=0
 	for i in range(K):
 		tempCovarianceMat=[[0 for k in range(dimension)] for j in range(dimension)]
 		for j in range(dimension):
 			for k in range(dimension):
 				tempCovarianceMat[j][k]=Covariance(ind,i,j,k)
-				tempSum+=math.fabs(tempCovarianceMat[j][k])
 		tempClusterCovarianceMatrices.append(tempCovarianceMat)
 	clusterCovarianceMatrices.append(tempClusterCovarianceMatrices)
 
@@ -138,7 +136,7 @@ def calcPrereqTrain(filename):
 	#	Calculating mixing coefficients for all clusters...
 	tempClusterPi=[]
 	for i in range(K):
-		# print len(tempClusters[i])
+		print len(tempClusters[i]),N,float(len(tempClusters[i]))/N
 		tempClusterPi.append(float(len(tempClusters[i]))/N)
 
 	#	Gaussian Mixture Modelling...
@@ -149,7 +147,7 @@ def calcPrereqTrain(filename):
 	energy=np.inf
 	tempL=0
 
-	while energy>5000:
+	while energy>1000:
 		
 		#	Expectation step in the algorithm...
 		tempGammaZ=[[0 for i in range (K)] for j in range (N)]
@@ -157,8 +155,6 @@ def calcPrereqTrain(filename):
 		tempDenom=[0 for i in range(N)]
 		tempGammaSum=[0 for i in range(K)]
 		newTempL=0
-
-		print energy
 
 		#	Calculating responsibilty terms using previous values of parameters. 
 		for n in range(N):
@@ -171,7 +167,7 @@ def calcPrereqTrain(filename):
 					determinant=np.linalg.det(tempClusterCovarianceMatrices[k])
 				varLikelihood=likelihood(tempClass[n],tempClusterMean[k],tempClusterCovarianceMatrices[k])
 				if varLikelihood==0:
-					varLikelihood=1e-250
+					varLikelihood=1e-300
 				tempLikelihoodTerms[n][k]=tempClusterPi[k]*varLikelihood
 				tempDenom[n]+=tempLikelihoodTerms[n][k]
 			for k in range(K):
@@ -188,31 +184,42 @@ def calcPrereqTrain(filename):
 				for n in range(N):
 					tempClusterMean[k][i]+=tempGammaZ[n][k]*tempClass[n][i]
 				tempClusterMean[k][i]/=tempGammaSum[k]
+			print tempClusterMean[k]
+			print tempGammaSum[k]
 
 		#	Refining covariance matrices.
 		for k in range(K):
 			tempMatrix=[[0 for i in range(dimension)] for j in range(dimension)]
 			for n in range(N):
 				tempMatrix+=tempGammaZ[n][k]*np.outer((tempClass[n]-tempClusterMean[k]),(tempClass[n]-tempClusterMean[k]))
+			tempMatrix/=tempGammaSum[k]
+			determinant=np.linalg.det(tempMatrix)
+			while determinant==0:
+				for i in range(dimension):
+					tempMatrix[i][i]+=1
+				determinant=np.linalg.det(tempMatrix)
 			if tempL==0:
-				tempClusterCovarianceMatrices.append(tempMatrix/tempGammaSum[k])
+				tempClusterCovarianceMatrices.append(tempMatrix)
 			else:
-				tempClusterCovarianceMatrices[k]=tempMatrix/tempGammaSum[k]
+				tempClusterCovarianceMatrices[k]=tempMatrix
 
+		print "hahah"
 		#	Refining mixing coefficients.
 		for k in range(K):
 			tempClusterPi[k]=tempGammaSum[k]/N
-			# print tempClusterPi[k]
+			print tempClusterPi[k]
 
 		for n in range(N):
 			newTempL+=math.log(tempDenom[n])
 
+		print tempL,newTempL
 		if tempL==0:
 			tempL=newTempL
 			continue
 		else:
 			energy=math.fabs(tempL-newTempL)
 			tempL=newTempL
+		print energy
 
 	clusterMeans[tempClassInd]=tempClusterMean
 	clusterCovarianceMatrices[tempClassInd]=tempClusterCovarianceMatrices
@@ -283,8 +290,8 @@ for k in range(maxK):
 	clusterMeans=[]
 	clusterCovarianceMatrices=[]
 	clusterPi=[]
-	K=k+1
-	
+	K=k+3
+
 	print "Training data for K = "+str(K)+"..."
 	for filename in os.listdir(os.path.join(direct,"use")):
 		calcPrereqTrain(os.path.join(direct,"use",filename))
