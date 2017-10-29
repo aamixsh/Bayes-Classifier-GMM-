@@ -52,9 +52,9 @@ def Test(direct,ind):
 		if ret==0:
 			outputData+=chr(255)+chr(255)+chr(255)
 		elif ret==1:
-			outputData+=chr(127)+chr(127)+chr(127)
-		else:
 			outputData+=chr(0)+chr(0)+chr(0)
+		else:
+			outputData+=chr(127)+chr(127)+chr(127)
 	im=Image.frombytes("RGB",(imageSize[ind][0],imageSize[ind][1]),outputData)
 	im.save(os.path.join(direct+filename)+str(ind)+".png","PNG")
 
@@ -143,9 +143,8 @@ for filename in os.listdir(directM):
 			clusterCovarianceMatrix=np.array(tempClusterCovarianceMatrix)
 			clusterCovarianceMatrices.append(clusterCovarianceMatrix)	
 
-		print "Testing data for file "+filename+"..."	
-		if filename=="init_k3.txt":
-			for i in range(len(testData)):
-				Test(directO,i)
+		print "Testing data for file "+filename+"..."
+		for i in range(len(testData)):
+			Test(directO,i)
 
 #	End.
